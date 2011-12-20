@@ -46,7 +46,7 @@ var tests = {
 	googleRequest: function() {
 		testFinished();
   	},
-	allParams: function() {
+	testSuccessfulAnnounce: function() {
 		var args = {
 			info_hash: 23,
 			peer_id: 12,
@@ -63,7 +63,7 @@ var tests = {
 			trackerid: "HELLO"
 		};
 		makeRequest("/announce?"+params(args), function(data, res){  
-			assert.equals(res.statusCode, 200);
+			assert.equal(res.statusCode, 200);
 			testFinished();
 		});
    	},
@@ -72,9 +72,24 @@ var tests = {
 			assert.equal(res.statusCode, 404, "should be 404 on nonexistent url");
 			testFinished();
 		});
+	},
+	testBencodeDict: function() {
+		var testData = { "cow" : "moo", "spam" : "eggs" };
+		var expected = "d3:cow3:moo4:spam4:eggse";
+		assert.equal(expected, main.bencodeDict(testData));
+		var errorMsg = {"failure reason": "info hash needed"};
+		var expected = "d14:failure reason16:info hash needede";
+		assert.equal(expected, main.bencodeDict(errorMsg));
+		testFinished();
+	},
+	testEmptyInfoHash: function() {
+		makeRequest("/announce", function(data, res) {
+			assert.equal(res.statusCode, 200);
+			assert.equal(data, "d14:failure reason16:info hash needede");
+			testFinished();
+		});
 	}
 }
-
 
 var server = http.createServer(main.server);
 
