@@ -1,6 +1,7 @@
 var http = require("http");
 var assert = require("assert");
 var main = require("./main.js");
+var bcode = require("./bcode.js");
 
 var host = "localhost";
 var TEST_PORT = 3001;
@@ -49,36 +50,36 @@ var tests = {
 	testBencodeDict: function() {
 		var testData = {"tracker id":23};
 		var expected = "d10:tracker id2:23e";
-		assert.equal(expected, main.bencodeDict(testData));
+		assert.equal(expected, bcode.bencodeDict(testData));
 
 		var testData = { "cow" : "moo", "spam" : "eggs" };
 		var expected = "d3:cow3:moo4:spam4:eggse";
-		assert.equal(expected, main.bencodeDict(testData));
+		assert.equal(expected, bcode.bencodeDict(testData));
 		var errorMsg = {"failure reason": "info hash needed"};
 		var expected = "d14:failure reason16:info hash needede";
-		assert.equal(expected, main.bencodeDict(errorMsg));
+		assert.equal(expected, bcode.bencodeDict(errorMsg));
 		testFinished();
 	},
 	testBuncodeDict: function() {
 		var testData = "d10:tracker id2:23e";
 		var expected = {"tracker id":23};
-		var result = main.bdecodeDict(testData);
+		var result = bcode.bdecodeDict(testData);
 		assert.deepEqual(expected, result.value);
 		var testData = "d3:cow3:moo4:spam4:eggse";
 		var expected = { "cow" : "moo", "spam" : "eggs" };
-		result = main.bdecodeDict(testData);
+		result = bcode.bdecodeDict(testData);
 		assert.deepEqual(expected, result.value);
 		var errorMsg = "d14:failure reason16:info hash needede";
 		var expected = {"failure reason": "info hash needed"};
-		result = main.bdecodeDict(errorMsg);
+		result = bcode.bdecodeDict(errorMsg);
 		assert.deepEqual(expected, result.value);
 		testFinished();
 	},
 	testBuncodeList: function() {
 		var list = [{a:"apple",b:"butternut"}, {c:"candy",d:"drunk"}];
-		var testData = "l" + main.bencodeDict(list[0]) +
-			main.bencodeDict(list[1]) + "e";
-		assert.deepEqual(list, main.bdecodeList(testData));
+		var testData = "l" + bcode.bencodeDict(list[0]) +
+			bcode.bencodeDict(list[1]) + "e";
+		assert.deepEqual(list, bcode.bdecodeList(testData));
 		testFinished();
 	},
 	testEmptyInfoHash: function() {
@@ -106,17 +107,17 @@ var tests = {
 		};
 		makeRequest("/announce?"+params(args), function(data, res){  
 			assert.equal(res.statusCode, 200);
-			assert.equal(args.ip, main.bdecodeDict(data).value["tracker id"]);
+			assert.equal(args.ip, bcode.bdecodeDict(data).value["tracker id"]);
 			assert.equal(args.ip, main.peers[args.ip].id);
 
 			args.ip = 24;
 			args.peer_id = 13;
 			makeRequest("/announce?"+params(args), function(data, res) {
-				//console.log(main.bdecodeDict(data).value);
-				//console.log((main.bdecodeDict(data).value["peers"]));
+				//console.log(bcode.bdecodeDict(data).value);
+				//console.log((bcode.bdecodeDict(data).value["peers"]));
 
 				// check that we get the first peer in the list
-				var peerList = main.bdecodeList(main.bdecodeDict(data).value["peers"]);
+				var peerList = bcode.bdecodeList(bcode.bdecodeDict(data).value["peers"]);
 				assert.equal(23, peerList[0]["ip"]);
 				testFinished();
 			});
