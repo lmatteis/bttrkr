@@ -46,6 +46,48 @@ var tests = {
 	googleRequest: function() {
 		testFinished();
   	},
+	testBencodeDict: function() {
+		var testData = {"tracker id":23};
+		var expected = "d10:tracker id2:23e";
+		assert.equal(expected, main.bencodeDict(testData));
+
+		var testData = { "cow" : "moo", "spam" : "eggs" };
+		var expected = "d3:cow3:moo4:spam4:eggse";
+		assert.equal(expected, main.bencodeDict(testData));
+		var errorMsg = {"failure reason": "info hash needed"};
+		var expected = "d14:failure reason16:info hash needede";
+		assert.equal(expected, main.bencodeDict(errorMsg));
+		testFinished();
+	},
+	testBuncodeDict: function() {
+		var testData = "d10:tracker id2:23e";
+		var expected = {"tracker id":23};
+		var result = main.bdecodeDict(testData);
+		assert.deepEqual(expected, result.value);
+		var testData = "d3:cow3:moo4:spam4:eggse";
+		var expected = { "cow" : "moo", "spam" : "eggs" };
+		result = main.bdecodeDict(testData);
+		assert.deepEqual(expected, result.value);
+		var errorMsg = "d14:failure reason16:info hash needede";
+		var expected = {"failure reason": "info hash needed"};
+		result = main.bdecodeDict(errorMsg);
+		assert.deepEqual(expected, result.value);
+		testFinished();
+	},
+	testBuncodeList: function() {
+		var list = [{a:"apple",b:"butternut"}, {c:"candy",d:"drunk"}];
+		var testData = "l" + main.bencodeDict(list[0]) +
+			main.bencodeDict(list[1]) + "e";
+		assert.deepEqual(list, main.bdecodeList(testData));
+		testFinished();
+	},
+	testEmptyInfoHash: function() {
+		makeRequest("/announce", function(data, res) {
+			assert.equal(res.statusCode, 200);
+			assert.equal(data, "d14:failure reason16:info hash needede");
+			testFinished();
+		});
+	},
 	testSuccessfulAnnounce: function() {
 		var args = {
 			info_hash: 23,
@@ -64,28 +106,25 @@ var tests = {
 		};
 		makeRequest("/announce?"+params(args), function(data, res){  
 			assert.equal(res.statusCode, 200);
-			testFinished();
+			assert.equal(args.ip, main.bdecodeDict(data).value["tracker id"]);
+			assert.equal(args.ip, main.peers[args.ip].id);
+
+			args.ip = 24;
+			args.peer_id = 13;
+			makeRequest("/announce?"+params(args), function(data, res) {
+				//console.log(main.bdecodeDict(data).value);
+				//console.log((main.bdecodeDict(data).value["peers"]));
+
+				// check that we get the first peer in the list
+				var peerList = main.bdecodeList(main.bdecodeDict(data).value["peers"]);
+				assert.equal(23, peerList[0]["ip"]);
+				testFinished();
+			});
 		});
    	},
 	handlerThatDoesntExist: function() {
 		makeRequest("/foo", function(data, res) {
 			assert.equal(res.statusCode, 404, "should be 404 on nonexistent url");
-			testFinished();
-		});
-	},
-	testBencodeDict: function() {
-		var testData = { "cow" : "moo", "spam" : "eggs" };
-		var expected = "d3:cow3:moo4:spam4:eggse";
-		assert.equal(expected, main.bencodeDict(testData));
-		var errorMsg = {"failure reason": "info hash needed"};
-		var expected = "d14:failure reason16:info hash needede";
-		assert.equal(expected, main.bencodeDict(errorMsg));
-		testFinished();
-	},
-	testEmptyInfoHash: function() {
-		makeRequest("/announce", function(data, res) {
-			assert.equal(res.statusCode, 200);
-			assert.equal(data, "d14:failure reason16:info hash needede");
 			testFinished();
 		});
 	}
